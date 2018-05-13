@@ -1,0 +1,71 @@
+---
+- name: set hostname
+  hostname: 
+    name: "{{ hostname }}"
+
+- name: hosts file
+  copy:
+    src: hosts
+    dest: /etc/hosts
+
+- name: install vim
+  yum:
+    name: vim
+
+- name: install docker
+  yum:
+    name: docker
+
+- name: create kubernetes repository file
+  copy:
+    src: kubernetes.repo
+    dest: /etc/yum.repos.d/kubernetes.repo
+
+# - name: create kubernetes repository file
+#   yum_repository:
+#     name: kubernetes
+#     description: kubernetes repo
+#     baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+#     enabled: yes
+#     gpgcheck: yes
+#     repo_gpgcheck: yes
+#     gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+- name: install kube
+  yum:
+    name: "{{ item }}"
+  with_items:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+- name: set swapoff
+  command: swapoff -a
+
+- name: start docker
+  systemd: 
+    name: docker
+    state: started
+    enabled: yes
+
+- name: start kube
+  systemd: 
+    name: kubelet
+    state: started
+    enabled: yes
+
+# - name: iptables
+#   copy:
+#     src: kubernetes.conf
+#     dest: /etc/sysctl.d/kubernetes.conf
+
+# - name: iptables
+#   copy:
+#     src: bridge-nf-call-iptables
+#     dest: /proc/sys/net/bridge/bridge-nf-call-iptables
+
+- name: sysctl iptables
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: 1
+    sysctl_file: /etc/sysctl.d/kubernetes.conf
